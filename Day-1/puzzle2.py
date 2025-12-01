@@ -20,12 +20,17 @@ def get_password(rotations: List[Tuple[int, int]]) -> int:
 
     return num_zeroes
 
-if __name__ == "__main__":
-
+def parse_input() -> List[Tuple[int, int]]:
     rotations = []
     with open("./puzzle1.in", "r") as f:
         for line in f.readlines():
             dir = 1 if line[0] == "R" else -1
             rotations.append((dir, int(line[1:])))
+    
+    return rotations
+
+if __name__ == "__main__":
+
+    rotations = parse_input()
     
     print(get_password(rotations))

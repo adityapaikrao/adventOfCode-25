@@ -16,19 +16,24 @@ int getPassword(vector<vector<int>>& rotations){
     return numZeroes;
 }
 
-
-int main(){
-    // read input file from puzzle.in
+vector<vector<int>> parseInput(){
     vector<vector<int>> rotations;
 
     freopen("puzzle1.in", "r", stdin);
 
-    char dirChar;
-    int steps;
-    while(cin >> dirChar >> steps){
-        int direction = (dirChar == 'R') ? 1 : -1;
-        rotations.push_back({direction, steps});
+    char dir;
+    int rotation;
+    while(cin >> dir >> rotation){
+        int direction = (dir == 'R')? 1 : -1;
+        rotations.push_back({direction, rotation});
     }
+
+    return rotations;
+}
+
+int main(){
+    // read input file from puzzle.in
+    vector<vector<int>> rotations = parseInput();
     
     cout << getPassword(rotations) << endl;
 }
