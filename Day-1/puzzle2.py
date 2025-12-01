@@ -12,15 +12,11 @@ def get_password(rotations: List[Tuple[int, int]]) -> int:
 
         # add in zeroes during rotation
         new_pos = prev_pos + (dir * rotation)
-        if (new_pos < 0 or new_pos > 100) and prev_pos != 0: 
+        if (new_pos <= 0 or new_pos >= 100) and prev_pos != 0: 
             num_zeroes += 1
 
-        new_pos = (new_pos + 100) % 100
-        
-        if new_pos == 0 and prev_pos != 0:
-            num_zeroes += 1
-        
-        prev_pos = new_pos
+    
+        prev_pos = new_pos % 100
 
     return num_zeroes
 
