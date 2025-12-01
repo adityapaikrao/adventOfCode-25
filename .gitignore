@@ -1,0 +1,4 @@
+.vscode
+puzzle[0-9]*
+!*.cpp
+*.dSYM
