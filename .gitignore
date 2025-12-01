@@ -1,5 +1,7 @@
 .vscode
 puzzle[0-9]*
+test.in
 !*.cpp
 !*.py
+!*.in
 *.dSYM
