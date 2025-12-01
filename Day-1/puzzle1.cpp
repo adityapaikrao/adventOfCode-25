@@ -3,6 +3,7 @@
 
 using namespace std;
 
+/*Implements the logic to solve the first puzzle*/
 int getPassword(vector<vector<int>>& rotations){
     int numZeroes = 0;
     short int pos = 50;
@@ -16,7 +17,9 @@ int getPassword(vector<vector<int>>& rotations){
     return numZeroes;
 }
 
+/*Parses Input from the puzzle.in file to read into a 2-D vector*/
 vector<vector<int>> parseInput(){
+    
     vector<vector<int>> rotations;
 
     freopen("puzzle1.in", "r", stdin);
@@ -32,7 +35,6 @@ vector<vector<int>> parseInput(){
 }
 
 int main(){
-    // read input file from puzzle.in
     vector<vector<int>> rotations = parseInput();
     
     cout << getPassword(rotations) << endl;
