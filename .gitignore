@@ -1,4 +1,5 @@
 .vscode
 puzzle[0-9]*
 !*.cpp
+!*.py
 *.dSYM
