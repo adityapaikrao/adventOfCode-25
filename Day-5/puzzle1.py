@@ -1,22 +1,22 @@
 from typing import List, Tuple
 from bisect import bisect_right, bisect_left
 
-def merge_ranges(ranges: List[List[int]]) -> List[List[int]]:
+def merge_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     prev = 0
     i = 1
 
     while i < len(ranges):
         if ranges[prev][1] >= ranges[i][0]:
-            ranges[prev][1] = max(ranges[i][1], ranges[prev][1])
+            ranges[prev] = (ranges[prev][0],  max(ranges[i][1], ranges[prev][1]))
         else:
             prev += 1
             ranges[prev] = ranges[i]
         i += 1
     
-    return ranges[:prev + 1]    
+    return ranges[:prev + 1]
 
 
-def get_fresh_ingredients(ranges: List[List[int]], ingredients: List[int]) -> int:
+def get_fresh_ingredients(ranges: List[Tuple[int, int]], ingredients: List[int]) -> int:
     num_fresh = 0
     # ranges.sort() # O(M.log(M))
     ranges.sort()
@@ -33,7 +33,7 @@ def get_fresh_ingredients(ranges: List[List[int]], ingredients: List[int]) -> in
     return num_fresh
 
 
-def parse_input() -> Tuple[List[List[int]], List[int]]:
+def parse_input() -> Tuple[List[Tuple[int, int]], List[int]]:
     ranges = []
     ingredients = []
 
@@ -48,7 +48,7 @@ def parse_input() -> Tuple[List[List[int]], List[int]]:
                 ingredients.append(int(line.strip()))
             else:
                 range_list = [int(x) for x in line.strip().split("-")]
-                ranges.append(range_list)
+                ranges.append(tuple(range_list))
 
     return ranges, ingredients
 

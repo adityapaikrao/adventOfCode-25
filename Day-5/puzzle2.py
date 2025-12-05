@@ -1,13 +1,13 @@
 from puzzle1 import parse_input
-from typing import List
+from typing import List, Tuple
 
-def merge_ranges(ranges: List[List[int]]) -> List[List[int]]:
+def merge_ranges(ranges: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
     prev = 0
     i = 1
 
     while i < len(ranges):
         if ranges[prev][1] >= ranges[i][0]:
-            ranges[prev][1] = max(ranges[i][1], ranges[prev][1])
+            ranges[prev] = (ranges[prev][0],  max(ranges[i][1], ranges[prev][1]))
         else:
             prev += 1
             ranges[prev] = ranges[i]
@@ -15,7 +15,7 @@ def merge_ranges(ranges: List[List[int]]) -> List[List[int]]:
     
     return ranges[:prev + 1]
 
-def valid_fresh_ids(ranges: List[List[int]]) -> int:
+def valid_fresh_ids(ranges: List[Tuple[int, int]]) -> int:
     num_ids = 0
 
     ranges.sort()
