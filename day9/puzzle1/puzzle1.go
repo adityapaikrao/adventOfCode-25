@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"strconv"
 	"strings"
@@ -11,7 +12,7 @@ import (
 func calculateArea(point1 [2]int, point2 [2]int) int {
 	area := 1
 	for i := range point1 {
-		area *= (point1[i] - point2[i] + 1)
+		area *= int(math.Abs(float64(point1[i]-point2[i]) + 1))
 	}
 	return area
 }
