@@ -3,8 +3,8 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -13,6 +13,7 @@ import (
 
 func parseInput() [][2]int {
 	filePath := "../puzzle1.in"
+	// filePath := "test.in" // Uncomment for testing
 	points := make([][2]int, 0)
 
 	file, err := os.Open(filePath)
@@ -44,59 +45,56 @@ func parseInput() [][2]int {
 	return points
 }
 
-func calculateArea(point1 [2]int, point2 [2]int) int {
-	area := 1
-	for i := range point1 {
-		area *= int(math.Abs(float64(point1[i]-point2[i]))) + 1
+// Compress coordinates to reduce grid size
+// Returns compressed points, x mapping, y mapping
+func compressCoordinates(points [][2]int) ([][2]int, []int, []int) {
+	xSet := make(map[int]bool)
+	ySet := make(map[int]bool)
+
+	for _, p := range points {
+		xSet[p[0]] = true
+		ySet[p[1]] = true
 	}
 
-	return area
+	// Convert to sorted slices
+	xVals := make([]int, 0, len(xSet))
+	yVals := make([]int, 0, len(ySet))
+	for x := range xSet {
+		xVals = append(xVals, x)
+	}
+	for y := range ySet {
+		yVals = append(yVals, y)
+	}
+	sort.Ints(xVals)
+	sort.Ints(yVals)
+
+	// Create mapping from original to compressed
+	xToIdx := make(map[int]int)
+	yToIdx := make(map[int]int)
+	for i, x := range xVals {
+		xToIdx[x] = i + 1 // +1 for padding
+	}
+	for i, y := range yVals {
+		yToIdx[y] = i + 1 // +1 for padding
+	}
+
+	// Compress points
+	compressed := make([][2]int, len(points))
+	for i, p := range points {
+		compressed[i] = [2]int{xToIdx[p[0]], yToIdx[p[1]]}
+	}
+
+	return compressed, xVals, yVals
 }
 
-/*Normalize points to optimize performance**/
-func normalizePoints(points [][2]int, padding int) ([][2]int, int, int) {
-	minX := points[0][0]
-	minY := points[0][1]
-
-	maxX := points[0][0]
-	maxY := points[0][1]
-
-	for _, point := range points {
-
-		// update Xs
-		if point[0] < minX {
-			minX = point[0]
-		}
-
-		if point[0] > maxX {
-			maxX = point[0]
-		}
-
-		// update Ys
-		if point[1] < minY {
-			minY = point[1]
-		}
-
-		if point[1] > maxY {
-			maxY = point[1]
-		}
-
-	}
-
-	for i := range points {
-		points[i][0] += padding - minX
-		points[i][1] += padding - minY
-	}
-
-	M := (maxY - minY) + (2 * padding) + 1
-	N := maxX - minX + (2 * padding) + 1
-	return points, N, M
-
+/*Check if the given coordinate is within bounds of the grid*/
+func inbound(x int, y int, N int, M int) bool {
+	return x >= 0 && x < N && y >= 0 && y < M
 }
 
-/*Plots the points on a grid & returns the grid with 1s(reds) & 2s(greens) */
+/*Mark the boundary edges between consecutive red points*/
 func markBoundaries(points [][2]int, N int, M int) [][]int {
-	grid := make([][]int, N) // N * M grid
+	grid := make([][]int, N)
 	for j := range N {
 		grid[j] = make([]int, M)
 	}
@@ -119,26 +117,14 @@ func markBoundaries(points [][2]int, N int, M int) [][]int {
 	}
 
 	return grid
-
 }
 
-/*Check if the given coordinate is within bounds of the grid*/
-func inbound(x int, y int, N int, M int) bool {
-	if x < 0 || x >= N {
-		return false
-	} else if y < 0 || y >= M {
-		return false
-	} else {
-		return true
-	}
-}
-
-/*Uses the boundary of the points to fill up the green & red tiles with 1s (red) & 2s (green)*/
+/*Uses BFS from outside to mark exterior, then interior becomes the valid area*/
 func fillGrid(grid [][]int) [][]int {
-	q := Queue.NewQueue() // queue for BFS
+	q := Queue.NewQueue()
 	q.Push([2]int{0, 0})
 
-	grid[0][0] = -1 // mark as visited
+	grid[0][0] = -1 // mark as visited (exterior)
 
 	N := len(grid)
 	M := len(grid[0])
@@ -159,7 +145,7 @@ func fillGrid(grid [][]int) [][]int {
 		}
 	}
 
-	// set negative elems (out of boundary to zero)
+	// -1 (exterior) -> 0, everything else (boundary + interior) -> 1
 	for i := range N {
 		for j := range M {
 			if grid[i][j] == -1 {
@@ -170,14 +156,14 @@ func fillGrid(grid [][]int) [][]int {
 		}
 	}
 	return grid
-
 }
 
-/*Compute prefix sum of the grid*/
+/*Compute prefix sum of the grid for O(1) rectangle sum queries*/
 func computePrefixSum(grid [][]int) [][]int {
 	N := len(grid)
 	M := len(grid[0])
 
+	// Compute prefix sum
 	prefix := make([][]int, N)
 	for i := range N {
 		prefix[i] = make([]int, M)
@@ -192,78 +178,74 @@ func computePrefixSum(grid [][]int) [][]int {
 	return prefix
 }
 
-/*Checks if rectangle formed by point1, point2 is contained within the green & red area*/
-func isValid(point1 [2]int, point2 [2]int, prefix [][]int) bool {
-	expectedArea := calculateArea(point1, point2)
+/*Check if rectangle from (x1,y1) to (x2,y2) is completely inside the polygon*/
+func isValidRect(x1, y1, x2, y2 int, prefix [][]int) bool {
+	minX := min(x1, x2)
+	minY := min(y1, y2)
+	maxX := max(x1, x2)
+	maxY := max(y1, y2)
 
-	minX := min(point1[0], point2[0])
-	minY := min(point1[1], point2[1])
-	maxX := max(point1[0], point2[0])
-	maxY := max(point1[1], point2[1])
+	// Expected number of cells in the rectangle
+	expectedCells := (maxX - minX + 1) * (maxY - minY + 1)
 
-	// To get sum from (minX, minY) to (maxX, maxY) inclusive, we need:
-	// prefix[maxX][maxY] - prefix[minX-1][maxY] - prefix[maxX][minY-1] + prefix[minX-1][minY-1]
-	actualArea := prefix[maxX][maxY] - prefix[maxX][minY-1] - prefix[minX-1][maxY] + prefix[minX-1][minY-1]
+	// Actual cells that are inside the polygon
+	actualCells := prefix[maxX][maxY] - prefix[minX-1][maxY] - prefix[maxX][minY-1] + prefix[minX-1][minY-1]
 
-	return actualArea == expectedArea
-
-}
-
-// Shoelace formula to calculate polygon area (returns 2x the area to avoid float)
-func shoelaceArea(points [][2]int) int {
-	n := len(points)
-	area := 0
-	for i := 0; i < n; i++ {
-		j := (i + 1) % n
-		area += points[i][0] * points[j][1]
-		area -= points[j][0] * points[i][1]
-	}
-	if area < 0 {
-		area = -area
-	}
-	return area / 2
-}
-
-// Calculate perimeter (boundary points) - Manhattan distance for grid movements
-func calcPerimeter(points [][2]int) int {
-	n := len(points)
-	perim := 0
-	for i := 0; i < n; i++ {
-		j := (i + 1) % n
-		dx := points[j][0] - points[i][0]
-		dy := points[j][1] - points[i][1]
-		if dx < 0 {
-			dx = -dx
-		}
-		if dy < 0 {
-			dy = -dy
-		}
-		perim += dx + dy
-	}
-	return perim
-}
-
-// Pick's theorem: A = i + b/2 - 1
-// So: i = A - b/2 + 1
-// Total points (interior + boundary) = i + b = A + b/2 + 1
-func totalPolygonArea(points [][2]int) int {
-	A := shoelaceArea(points)
-	b := calcPerimeter(points)
-	return A + b/2 + 1
+	return actualCells == expectedCells
 }
 
 func getMaxArea(points [][2]int) int {
-	fmt.Println("intial points: \n", points)
+	maxArea := 0
 
-	// Use Shoelace + Pick's theorem for O(n) solution
-	area := totalPolygonArea(points)
-	fmt.Println("Total area (using Shoelace + Pick's theorem):", area)
+	// Compress coordinates
+	compressed, xVals, yVals := compressCoordinates(points)
 
-	return area
+	N := len(xVals) + 2 // +2 for padding on both sides
+	M := len(yVals) + 2
+
+	fmt.Println("Compressed grid size:", N, "x", M)
+
+	// Mark boundaries and fill
+	grid := markBoundaries(compressed, N, M)
+	grid = fillGrid(grid)
+
+	// Compute prefix sum
+	prefix := computePrefixSum(grid)
+
+	// Check all pairs of red points
+	for i := 0; i < len(compressed); i++ {
+		for j := i + 1; j < len(compressed); j++ {
+			p1 := compressed[i]
+			p2 := compressed[j]
+
+			if isValidRect(p1[0], p1[1], p2[0], p2[1], prefix) {
+				// Calculate actual area using original coordinates
+				origP1 := points[i]
+				origP2 := points[j]
+				width := abs(origP1[0]-origP2[0]) + 1
+				height := abs(origP1[1]-origP2[1]) + 1
+				area := width * height
+
+				if area > maxArea {
+					maxArea = area
+					fmt.Printf("New max: points %v and %v, area %d\n", origP1, origP2, area)
+				}
+			}
+		}
+	}
+
+	return maxArea
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 func main() {
 	points := parseInput()
-
-	fmt.Println(getMaxArea(points))
+	fmt.Printf("Loaded %d points\n", len(points))
+	fmt.Println("Max area:", getMaxArea(points))
 }
