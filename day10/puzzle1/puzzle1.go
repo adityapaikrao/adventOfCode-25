@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"slices"
 	"strconv"
 	"strings"
@@ -97,15 +98,6 @@ func parseInput() ([][]int, [][][]int, [][]int, error) {
 	return parseInputFromReader(file)
 }
 
-func reachedTarget(state []int, target []int) bool {
-	for i := range state {
-		if state[i] != target[i] {
-			return false
-		}
-	}
-	return true
-}
-
 func processMachine(target []int, buttonsRow [][]int) int {
 	levels := 0
 	q := Queue.NewQueue() // stores the (state)
@@ -119,7 +111,7 @@ func processMachine(target []int, buttonsRow [][]int) int {
 		for size > 0 {
 			state := q.Popleft().([]int)
 			// fmt.Println("checking for state", state)
-			if reachedTarget(state, target) {
+			if reflect.DeepEqual(target, state) {
 				// fmt.Printf("%v presses for target: %v \n", levels, target)
 				return levels
 			}
