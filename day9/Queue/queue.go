@@ -1,6 +1,9 @@
 package queue
 
-import "container/list"
+import (
+	"container/list"
+	"fmt"
+)
 
 type Queue struct {
 	data *list.List
@@ -40,4 +43,10 @@ func (q *Queue) IsEmpty() bool {
 /*Get size of the queue*/
 func (q *Queue) Size() int {
 	return q.data.Len()
+}
+func (q *Queue) PrintQueue() {
+	for e := q.data.Front(); e != nil; e = e.Next() {
+		fmt.Print(e.Value, " ")
+	}
+	fmt.Println()
 }
